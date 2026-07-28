@@ -3,219 +3,1015 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#2c3e50" />
+    <meta name="theme-color" content="#0a2540" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <title>📊 Exam Score Predictor Pro</title>
-
-    <!-- Chart.js for charts -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js">
-    </script>
+    <title>📊 Mungwi District · School Data</title>
 
     <!-- Supabase Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
     </script>
+    <!-- SheetJS for Excel export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
+    </script>
+    <!-- Chart.js for charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js">
+    </script>
 
-    <link rel="stylesheet" href="style.css" />
-    <link rel="manifest" href="manifest.json" />
+    <style>
+        /* ===== ROOT VARIABLES ===== */
+        :root {
+            --primary: #0a2540;
+            --primary-light: #1a3a5c;
+            --primary-dark: #061a2e;
+            --accent: #ffcc00;
+            --accent-dark: #e6b800;
+            --bg: #f2f6fa;
+            --card-bg: #ffffff;
+            --text: #1a2a3a;
+            --text-light: #4a5a6a;
+            --border: #dce2e8;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            --radius: 16px;
+            --radius-sm: 10px;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        /* ===== RESET & BASE ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html,
+        body {
+            height: 100%;
+            width: 100%;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            overflow-x: hidden;
+            padding-bottom: 70px;
+        }
+
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #eef2f6;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #b0c4d8;
+            border-radius: 10px;
+        }
+
+        /* ===== HEADER ===== */
+        .app-header {
+            background: var(--primary);
+            color: #fff;
+            padding: 14px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+            min-height: 60px;
+        }
+        .app-header .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 16px;
+        }
+        .app-header .brand i {
+            font-size: 24px;
+            color: var(--accent);
+        }
+        .app-header .brand span {
+            color: var(--accent);
+        }
+        .app-header .header-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .app-header .user-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.12);
+            padding: 4px 12px 4px 10px;
+            border-radius: 30px;
+            font-size: 12px;
+        }
+        .app-header .user-badge i {
+            font-size: 14px;
+            color: var(--accent);
+        }
+        .app-header .user-badge .role-tag {
+            background: var(--accent);
+            color: var(--primary-dark);
+            font-weight: 700;
+            font-size: 9px;
+            padding: 2px 8px;
+            border-radius: 20px;
+            text-transform: uppercase;
+        }
+
+        /* ===== TAB NAV ===== */
+        .tab-nav {
+            display: flex;
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border);
+            overflow-x: auto;
+            padding: 0 8px;
+            position: sticky;
+            top: 60px;
+            z-index: 50;
+            background: var(--bg);
+        }
+        .tab-nav .tab-btn {
+            flex: 1;
+            padding: 12px 8px;
+            border: none;
+            background: transparent;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-light);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: 0.2s;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            min-height: 44px;
+        }
+        .tab-nav .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--accent);
+            background: rgba(255, 204, 0, 0.08);
+        }
+        .tab-nav .tab-btn .tab-icon {
+            font-size: 16px;
+        }
+
+        /* ===== CONTAINER ===== */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 12px 12px 80px;
+            width: 100%;
+        }
+
+        /* ===== CARDS ===== */
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 18px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            margin-bottom: 14px;
+        }
+        .card h2 {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .card h2 i {
+            color: var(--accent-dark);
+        }
+        .card h3 {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+        .card .subtitle {
+            font-size: 13px;
+            color: var(--text-light);
+            margin-bottom: 12px;
+        }
+
+        /* ===== FORM ===== */
+        .form-group {
+            margin-bottom: 12px;
+        }
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            background: #fafbfc;
+            transition: 0.2s;
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(10, 37, 64, 0.06);
+            background: #fff;
+        }
+        .form-group input[type="number"] {
+            -moz-appearance: textfield;
+        }
+        .form-group input[type="number"]::-webkit-outer-spin-button,
+        .form-group input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+        }
+        .form-group small {
+            display: block;
+            font-size: 11px;
+            color: var(--text-light);
+            margin-top: 3px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .form-row.three-col {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+
+        /* ===== BUTTONS ===== */
+        .btn-primary,
+        .btn-secondary,
+        .btn-success,
+        .btn-danger,
+        .btn-small {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-height: 44px;
+            min-width: 44px;
+        }
+        .btn-primary:active,
+        .btn-secondary:active,
+        .btn-success:active,
+        .btn-danger:active {
+            transform: scale(0.96);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: var(--primary-light);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: #fff;
+        }
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: #fff;
+        }
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-secondary {
+            background: var(--border);
+            color: var(--text);
+        }
+        .btn-secondary:hover {
+            background: #c8d0d8;
+        }
+
+        .btn-small {
+            padding: 6px 14px;
+            font-size: 12px;
+            min-height: 34px;
+            min-width: 34px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 4px;
+        }
+        .button-group .btn-primary,
+        .button-group .btn-secondary {
+            flex: 1;
+            min-width: 100px;
+        }
+
+        /* ===== TAB CONTENT ===== */
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        /* ===== STATS ===== */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .stat-box {
+            background: #f8fafc;
+            border-radius: var(--radius-sm);
+            padding: 12px 8px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+        .stat-box .num {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--primary);
+            line-height: 1.2;
+        }
+        .stat-box .label {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            margin-top: 2px;
+        }
+        .stat-box .icon {
+            font-size: 16px;
+            color: var(--accent-dark);
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        /* ===== TABLE ===== */
+        .table-wrap {
+            overflow-x: auto;
+            margin-top: 8px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            background: #fff;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            min-width: 580px;
+        }
+        table th {
+            background: #f0f4f8;
+            color: var(--text);
+            font-weight: 700;
+            padding: 8px 10px;
+            text-align: left;
+            border-bottom: 2px solid var(--border);
+            white-space: nowrap;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+        table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #f0f4f8;
+            vertical-align: middle;
+        }
+        table tr:last-child td {
+            border-bottom: none;
+        }
+        table tr:hover td {
+            background: #fafbfc;
+        }
+        .text-ellipsis {
+            max-width: 100px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            display: inline-block;
+        }
+        .fw-600 {
+            font-weight: 600;
+        }
+
+        /* ===== TABLE SCROLL ===== */
+        .table-scroll {
+            max-height: 380px;
+            overflow-y: auto;
+        }
+        .table-scroll table thead {
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+
+        /* ===== EMPTY STATE ===== */
+        .empty-state {
+            text-align: center;
+            padding: 30px 10px;
+            color: var(--text-light);
+        }
+        .empty-state i {
+            font-size: 36px;
+            color: var(--border);
+            margin-bottom: 8px;
+            display: block;
+        }
+        .empty-state p {
+            font-size: 13px;
+        }
+
+        /* ===== TOAST ===== */
+        .toast {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            z-index: 999;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            display: none;
+            max-width: 90%;
+            text-align: center;
+        }
+        .toast.show {
+            display: block;
+            animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+        .toast-success {
+            background: var(--success);
+        }
+        .toast-error {
+            background: var(--danger);
+        }
+        .toast-info {
+            background: var(--primary);
+        }
+
+        /* ===== BOTTOM NAV ===== */
+        .bottom-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--card-bg);
+            border-top: 1px solid var(--border);
+            padding: 6px 0 env(safe-area-inset-bottom, 6px) 0;
+            z-index: 200;
+            justify-content: space-around;
+            box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.06);
+        }
+        .bottom-nav .nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4px 0;
+            border: none;
+            background: transparent;
+            font-size: 10px;
+            color: var(--text-light);
+            cursor: pointer;
+            transition: 0.2s;
+            min-height: 50px;
+            position: relative;
+        }
+        .bottom-nav .nav-item .nav-icon {
+            font-size: 20px;
+            margin-bottom: 2px;
+        }
+        .bottom-nav .nav-item .nav-label {
+            font-size: 10px;
+            font-weight: 500;
+        }
+        .bottom-nav .nav-item.active {
+            color: var(--primary);
+        }
+        .bottom-nav .nav-item.active .nav-icon {
+            color: var(--accent-dark);
+        }
+        .bottom-nav .nav-badge {
+            position: absolute;
+            top: 2px;
+            right: 50%;
+            transform: translateX(calc(50% + 20px));
+            background: var(--danger);
+            color: #fff;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 20px;
+            min-width: 18px;
+            text-align: center;
+        }
+
+        /* ===== SCHOOL SELECTOR ===== */
+        .school-selector {
+            background: #f8fafc;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+        .school-selector label {
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--text);
+        }
+        .school-selector select {
+            padding: 8px 14px;
+            border-radius: var(--radius-sm);
+            border: 1.5px solid var(--border);
+            font-size: 14px;
+            background: #fff;
+            flex: 1;
+            min-width: 140px;
+        }
+
+        /* ===== ENTRY FORM ===== */
+        .entry-form-wrap {
+            background: #f8fafc;
+            border-radius: var(--radius-sm);
+            padding: 14px;
+            border: 1px solid var(--border);
+            margin-bottom: 14px;
+        }
+        .entry-form-wrap .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .entry-form-wrap .form-row-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+        }
+        .section-label {
+            font-weight: 700;
+            font-size: 13px;
+            color: var(--primary);
+            margin: 12px 0 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .section-label i {
+            color: var(--accent-dark);
+            font-size: 14px;
+        }
+        .entry-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+        .entry-actions .btn {
+            flex: 1;
+            min-width: 80px;
+        }
+
+        /* ===== HISTORY ===== */
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .history-header h2 {
+            margin-bottom: 0;
+        }
+        .history-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .history-item {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .history-item:last-child {
+            border-bottom: none;
+        }
+        .history-item .name {
+            font-weight: 600;
+        }
+        .history-item .score {
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 16px;
+        }
+        .history-item .details {
+            font-size: 12px;
+            color: var(--text-light);
+        }
+        .history-item .delete-btn {
+            background: none;
+            border: none;
+            color: var(--danger);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 4px 8px;
+        }
+
+        /* ===== ANALYTICS ===== */
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .stat-card {
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: var(--radius-sm);
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+        .stat-card .stat-label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-light);
+            text-transform: uppercase;
+        }
+        .stat-card .stat-value {
+            display: block;
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--primary);
+            margin-top: 4px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 250px;
+            margin-top: 10px;
+        }
+
+        .model-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .model-stat-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .model-stat-item span:first-child {
+            font-weight: 600;
+            min-width: 100px;
+        }
+        .model-stat-item .stat-highlight {
+            font-weight: 700;
+            color: var(--primary);
+            min-width: 60px;
+        }
+        .progress-bar {
+            flex: 1;
+            height: 8px;
+            background: var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            min-width: 100px;
+        }
+        .progress-fill {
+            height: 100%;
+            background: var(--accent-dark);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+
+        /* ===== ABOUT ===== */
+        .about-content {
+            text-align: center;
+            padding: 10px 0;
+        }
+        .about-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        .about-content h3 {
+            font-size: 18px;
+            color: var(--primary);
+        }
+        .about-content p {
+            color: var(--text-light);
+            margin-bottom: 10px;
+        }
+        .about-section {
+            text-align: left;
+            margin-top: 16px;
+            padding: 14px;
+            background: #f8fafc;
+            border-radius: var(--radius-sm);
+        }
+        .about-section h4 {
+            color: var(--primary);
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .about-section code {
+            display: block;
+            background: var(--primary);
+            color: var(--accent);
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-family: monospace;
+            margin: 8px 0;
+            overflow-x: auto;
+        }
+        .about-section ul {
+            list-style: none;
+            padding: 0;
+        }
+        .about-section ul li {
+            padding: 4px 0;
+            font-size: 13px;
+            color: var(--text);
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            .form-row.three-col {
+                grid-template-columns: 1fr;
+            }
+            .entry-form-wrap .form-row {
+                grid-template-columns: 1fr;
+            }
+            .entry-form-wrap .form-row-3 {
+                grid-template-columns: 1fr;
+            }
+            .analytics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .stat-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .tab-nav {
+                display: none;
+            }
+            .bottom-nav {
+                display: flex;
+            }
+            .container {
+                padding-bottom: 12px;
+            }
+            .history-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .button-group .btn-primary,
+            .button-group .btn-secondary {
+                flex: 1 1 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stat-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 6px;
+            }
+            .stat-box .num {
+                font-size: 18px;
+            }
+            .stat-box .label {
+                font-size: 9px;
+            }
+            .analytics-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 6px;
+            }
+            .stat-card .stat-value {
+                font-size: 18px;
+            }
+            .card {
+                padding: 12px;
+            }
+            .app-header .brand {
+                font-size: 14px;
+            }
+            .app-header .brand i {
+                font-size: 20px;
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+        .mt-8 {
+            margin-top: 8px;
+        }
+        .mt-12 {
+            margin-top: 12px;
+        }
+        .flex {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .flex-between {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .text-muted {
+            color: var(--text-light);
+        }
+    </style>
 </head>
 <body>
 
+    <!-- ===== TOAST ===== -->
+    <div id="toast" class="toast"></div>
+
     <!-- ===== APP HEADER ===== -->
     <header class="app-header">
-        <div class="header-content">
-            <div class="app-icon">📊</div>
-            <div>
-                <h1>Mongu Trades Secondary School</h1>
-                <p>Final Exam Score Predictor Pro</p>
+        <div class="brand">
+            <i class="fas fa-graduation-cap" style="font-family: 'Font Awesome 6 Free'; font-weight: 900;"></i>
+            Mungwi<span>Data</span>
+        </div>
+        <div class="header-right">
+            <div class="user-badge">
+                <i class="fas fa-user-circle" style="font-family: 'Font Awesome 6 Free'; font-weight: 900;"></i>
+                <span id="userName">Admin</span>
+                <span class="role-tag" id="userRoleTag">Admin</span>
             </div>
+            <button class="btn-small" style="background:rgba(255,255,255,0.12);color:#fff;border:none;border-radius:30px;padding:4px 12px;cursor:pointer;" onclick="location.reload()">
+                <i class="fas fa-sync" style="font-family:'Font Awesome 6 Free';font-weight:900;"></i>
+            </button>
         </div>
     </header>
 
-    <!-- ===== TAB NAV (Desktop) ===== -->
+    <!-- ===== TAB NAV ===== -->
     <nav class="tab-nav">
-        <button class="tab-btn active" data-tab="predict"><span class="tab-icon">🔮</span> Predict</button>
-        <button class="tab-btn" data-tab="history"><span class="tab-icon">📋</span> History</button>
-        <button class="tab-btn" data-tab="analytics"><span class="tab-icon">📊</span> Analytics</button>
-        <button class="tab-btn" data-tab="about"><span class="tab-icon">ℹ️</span> About</button>
+        <button class="tab-btn active" data-tab="dashboard"><span class="tab-icon">📊</span> Dashboard</button>
+        <button class="tab-btn" data-tab="schools"><span class="tab-icon">🏫</span> Schools</button>
+        <button class="tab-btn" data-tab="data"><span class="tab-icon">📋</span> All Data</button>
+        <button class="tab-btn" data-tab="export"><span class="tab-icon">📥</span> Export</button>
     </nav>
 
     <div class="container">
 
         <!-- ========================================= -->
-        <!-- TAB 1: PREDICT -->
+        <!-- TAB 1: DASHBOARD -->
         <!-- ========================================= -->
-        <section id="tab-predict" class="tab-content active">
-
-            <!-- Input Card -->
+        <section id="tab-dashboard" class="tab-content active">
             <div class="card">
-                <h2>✏️ Enter Student Information</h2>
-
-                <div class="form-group">
-                    <label for="studentName">👤 Student Name</label>
-                    <input type="text" id="studentName" placeholder="e.g., Simataa Clatus" />
+                <h2><i class="fas fa-chart-simple" style="font-family:'Font Awesome 6 Free';font-weight:900;"></i> District Summary</h2>
+                <div id="adminStats" class="stat-grid">
+                    <div class="stat-box"><span class="icon">🏫</span><div class="num" id="statSchools">-</div><div class="label">Schools</div></div>
+                    <div class="stat-box"><span class="icon">👨‍🎓</span><div class="num" id="statTotalEnrol">-</div><div class="label">Enrolment</div></div>
+                    <div class="stat-box"><span class="icon">👶</span><div class="num" id="statTeenPreg">-</div><div class="label">Teen Preg</div></div>
+                    <div class="stat-box"><span class="icon">🚫</span><div class="num" id="statDropouts">-</div><div class="label">Dropouts</div></div>
+                    <div class="stat-box"><span class="icon">⏰</span><div class="num" id="statAbsenteeism">-</div><div class="label">Absenteeism</div></div>
+                    <div class="stat-box"><span class="icon">❤️</span><div class="num" id="statOVC">-</div><div class="label">OVC</div></div>
                 </div>
-
-                <div class="form-row three-col">
-                    <div class="form-group">
-                        <label for="hours">📚 Hours Studied</label>
-                        <input type="number" id="hours" placeholder="8" min="0" max="20" step="0.5" />
-                        <small>0 - 20 hours/week</small>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="absences">🚫 Absences</label>
-                        <input type="number" id="absences" placeholder="1" min="0" max="10" />
-                        <small>0 - 10 absences</small>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="midterm">📝 Mid-term Score</label>
-                        <input type="number" id="midterm" placeholder="76" min="0" max="100" />
-                        <small>0 - 100%</small>
-                    </div>
-                </div>
-
-                <div class="button-group">
-                    <button id="predictBtn" class="btn-primary">🔮 Predict Score</button>
-                    <button id="addBatchBtn" class="btn-batch">➕ Add to Batch</button>
-                    <button id="clearBtn" class="btn-secondary">🗑️ Clear</button>
-                </div>
-            </div>
-
-            <!-- Single Result -->
-            <div class="card result-card" id="resultSection" style="display: none;">
-                <div class="result-header">
-                    <h3>📋 Prediction Result</h3>
-                    <span id="resultDate" class="result-date"></span>
-                </div>
-                <p id="resultStudentName" class="student-name"></p>
-                <div class="score-display">
-                    <div class="score-ring" id="scoreRing">
-                        <span class="score-value" id="resultScore">0</span>
-                        <span class="score-label">Predicted Score</span>
-                    </div>
-                </div>
-                <div class="interpretation" id="resultInterpretation"></div>
-                <div class="mini-chart-container">
-                    <canvas id="miniChart"></canvas>
-                </div>
-                <div class="equation-display">
-                    <small><strong>Equation:</strong> 12.50 + 2.30(Hours) - 1.80(Absences) + 0.75(Mid-term)</small>
-                </div>
-                <button id="saveResultBtn" class="btn-save">💾 Save to Database</button>
-            </div>
-
-            <!-- What-If Analysis -->
-            <div class="card whatif-card" id="whatifSection" style="display: none;">
-                <h2>📈 What-If Analysis</h2>
-                <p class="subtitle">See how changing behavior affects the predicted score</p>
-                <div class="whatif-grid" id="whatifGrid"></div>
-            </div>
-
-            <!-- Batch Section -->
-            <div class="card batch-card" id="batchSection" style="display: none;">
-                <h2>👥 Batch Input</h2>
-                <p class="subtitle">Add multiple students for batch prediction</p>
-                <div class="batch-list" id="batchList">
-                    <p class="empty-message">No students added yet.</p>
-                </div>
-                <div class="batch-actions-row">
-                    <span id="batchCount">0 students</span>
-                    <button onclick="predictBatch()" class="btn-primary">🔮 Predict All</button>
-                    <button onclick="clearBatch()" class="btn-secondary">🗑️ Clear Batch</button>
-                </div>
-            </div>
-
-            <!-- Batch Results -->
-            <div class="card batch-results" id="batchResults" style="display: none;">
-                <div id="batchResultsContainer"></div>
-            </div>
-
-        </section>
-
-        <!-- ========================================= -->
-        <!-- TAB 2: HISTORY -->
-        <!-- ========================================= -->
-        <section id="tab-history" class="tab-content">
-            <div class="card">
-                <div class="history-header">
-                    <h2>📋 Prediction History</h2>
-                    <div>
-                        <button id="exportBtn" class="btn-small">📤 Export CSV</button>
-                        <button id="clearHistoryBtn" class="btn-small btn-danger">🗑️ Clear All</button>
-                    </div>
-                </div>
-                <p id="historyCount" class="subtitle">Loading...</p>
-                <div id="historyList" class="history-list">
-                    <p class="empty-message">Loading predictions from database...</p>
+                <div style="font-size:12px;color:var(--text-light);">
+                    <span id="lastUpdatedAdmin">Last updated: —</span>
                 </div>
             </div>
         </section>
 
         <!-- ========================================= -->
-        <!-- TAB 3: ANALYTICS -->
+        <!-- TAB 2: SCHOOLS -->
         <!-- ========================================= -->
-        <section id="tab-analytics" class="tab-content">
+        <section id="tab-schools" class="tab-content">
             <div class="card">
-                <h2>📊 Analytics Dashboard</h2>
-                <div class="analytics-grid">
-                    <div class="stat-card"><span class="stat-label">Total Predictions</span><span class="stat-value" id="statTotal">0</span></div>
-                    <div class="stat-card"><span class="stat-label">Average Score</span><span class="stat-value" id="statAverage">0%</span></div>
-                    <div class="stat-card"><span class="stat-label">Pass Rate</span><span class="stat-value" id="statPassRate">0%</span></div>
-                    <div class="stat-card"><span class="stat-label">Distinction Rate</span><span class="stat-value" id="statDistinction">0%</span></div>
+                <div class="flex-between">
+                    <h2 style="margin-bottom:0;"><i class="fas fa-school" style="font-family:'Font Awesome 6 Free';font-weight:900;"></i> Manage Schools</h2>
+                    <button class="btn-success btn-small" onclick="showAddSchoolForm()"><i class="fas fa-plus" style="font-family:'Font Awesome 6 Free';font-weight:900;"></i> Add</button>
                 </div>
-            </div>
-
-            <div class="card">
-                <h3>📈 Score Distribution</h3>
-                <div class="chart-container"><canvas id="distributionChart"></canvas></div>
-            </div>
-
-            <div class="card">
-                <h3>📈 Trend Over Time</h3>
-                <div class="chart-container"><canvas id="trendChart"></canvas></div>
-            </div>
-
-            <div class="card">
-                <h3>📊 Model Performance</h3>
-                <div class="model-stats">
-                    <div class="model-stat-item"><span>R-Squared</span><span class="stat-highlight">0.953</span><div class="progress-bar"><div class="progress-fill" style="width:95.3%;"></div></div></div>
-                    <div class="model-stat-item"><span>Accuracy</span><span class="stat-highlight">95.3%</span><div class="progress-bar"><div class="progress-fill" style="width:95.3%;"></div></div></div>
-                    <div class="model-stat-item"><span>Avg. Error</span><span class="stat-highlight">±5.85</span><div class="progress-bar"><div class="progress-fill" style="width:85%;"></div></div></div>
+                <div id="addSchoolForm" class="hidden" style="margin-top:12px;padding:12px;background:#f8fafc;border-radius:var(--radius-sm);border:1px solid var(--border);">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>School Name</label>
+                            <input type="text" id="newSchoolName" placeholder="e.g. CHAMFUBU PRIMARY" />
+                        </div>
+                        <div class="form-group" style="display:flex;align-items:flex-end;gap:6px;">
+                            <button class="btn-primary btn-small" onclick="addSchool()"><i class="fas fa-save" style="font-family:'Font Awesome 6 Free';font-weight:900;"></i> Add</button>
+                            <button class="btn-secondary btn-small" onclick="document.getElementById('addSchoolForm').classList.add('hidden')">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-wrap mt-8">
+                    <table>
+                        <thead><tr><th>#</th><th>School</th><th style="text-align:right;">Actions</th></tr></thead>
+                        <tbody id="schoolListBody"></tbody>
+                    </table>
                 </div>
             </div>
         </section>
 
         <!-- ========================================= -->
-        <!-- TAB 4: ABOUT -->
+        <!-- TAB 3: ALL DATA -->
         <!-- ========================================= -->
-        <section id="tab-about" class="tab-content">
+        <section id="tab-data" class="tab-content">
             <div class="card">
-                <h2>ℹ️ About This Project</h2>
-                <div class="about-content">
-                    <div class="about-icon">📊</div>
-                    <h3>Exam Score Predictor Pro</h3>
-                    <p><strong>Mongu Trades</strong> | ICT / Maths </p>
-                    <div class="about-section">
-                        <h4>🔬 The Model</h4>
-                        <code>Final = 12.50 + 2.30(Hours) - 1.80(Absences) + 0.75(Mid-term)</code>
-                        <ul>
-                            <li>📚 <strong>R-Squared:</strong> 0.953 (95.3% accuracy)</li>
-                            <li>📚 <strong>Training Data:</strong> 15 students</li>
-                            <li>📚 <strong>Average Error:</strong> ±5.85 marks</li>
-                        </ul>
+                <div class="flex-between">
+                    <h2 style="margin-bottom:0;"><i class="fas fa-table" style="font-family:'Font Awesome 6 Free';font-weight:900;"></i> All Records</h2>
+                    <div class="flex">
+                        <select id="adminFilterSchool" style="padding:6px 10px;border-radius:var(--radius-sm);border:1.5px solid var(--border);font-size:12px;background:#fff;">
+                            <option value="">All Schools</option>
+                        </select>
+                        <button class="btn-primary btn-small" onclick="loadData()"><i class="fas fa-sync" style="font-family:'Font Awesome 6 Free';font-weight:900;"></i></button>
                     </div>
-                    <div class="about-section">
-                        <h4>🚀 Features</h4>
-                        <ul>
-                            <li>✅ Real-time score prediction</li>
-                            <li>✅ What-If scenario analysis</li>
-                            <li>✅ Batch input for multiple students</li>
-                            <li>✅ Cloud database storage</li>
-                            <li>✅ Analytics dashboard with charts</li>
-                            <li>✅ Mobile app ready (PWA)</li>
-                        </ul>
-                    </div>
+                </div>
+                <div class="table-scroll mt-8">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>School</th><th>Grade</th><th>Boys</th><th>Girls</th><th>Total</th>
+                                <th>Age</th><th>Preg</th><th>Drop</th><th>Abs</th><th>Re</th><th>OVC</th>
+                                <th style="text-align:right;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminDataBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================= -->
+        <!-- TAB 4: EXPORT -->
+        <!-- ========================================= -->
+        <section id="tab-export" class="tab-content">
+            <div class="card">
+                <h2><i class="fas fa-file-export" style="font-family:'Font Awesome 6 Free';font-weight:900;"></i> Export Data</h2>
+                <p style="color:var(--text-light);margin-bottom:12px;font-size:13px;">Download all records as Excel or CSV.</p>
+                <div class="flex">
+                    <button class="btn-success" onclick="exportToExcel()"><i class="fas fa-file-excel" style="font-family:'Font Awesome 6 Free';font-weight:900;"></i> Excel</button>
+                    <button class="btn-secondary" onclick="exportToCSV()"><i class="fas fa-file-csv" style="font-family:'Font Awesome 6 Free';font-weight:900;"></i> CSV</button>
+                </div>
+                <div style="margin-top:12px;font-size:12px;color:var(--text-light);">
+                    <i class="fas fa-info-circle" style="font-family:'Font Awesome 6 Free';font-weight:900;"></i> Includes all fields: enrolment, dropouts, absenteeism, re-entry, OVC.
                 </div>
             </div>
         </section>
@@ -224,12 +1020,390 @@
 
     <!-- ===== BOTTOM NAV (Mobile) ===== -->
     <nav class="bottom-nav">
-        <button class="nav-item active" data-tab="predict"><span class="nav-icon">🔮</span><span class="nav-label">Predict</span></button>
-        <button class="nav-item" data-tab="history"><span class="nav-icon">📋</span><span class="nav-label">History</span><span class="nav-badge" id="historyBadge">0</span></button>
-        <button class="nav-item" data-tab="analytics"><span class="nav-icon">📊</span><span class="nav-label">Analytics</span></button>
-        <button class="nav-item" data-tab="about"><span class="nav-icon">ℹ️</span><span class="nav-label">About</span></button>
+        <button class="nav-item active" data-tab="dashboard"><span class="nav-icon">📊</span><span class="nav-label">Dashboard</span></button>
+        <button class="nav-item" data-tab="schools"><span class="nav-icon">🏫</span><span class="nav-label">Schools</span></button>
+        <button class="nav-item" data-tab="data"><span class="nav-icon">📋</span><span class="nav-label">Data</span></button>
+        <button class="nav-item" data-tab="export"><span class="nav-icon">📥</span><span class="nav-label">Export</span></button>
     </nav>
 
-    <script src="script.js"></script>
+    <script>
+        // ================================================================
+        //  SUPABASE CONFIG
+        // ================================================================
+        const SUPABASE_URL = 'https://ruclrfnyepexetxslsnqk.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1Y3JsZm55ZXBleGV0eHNsbnFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyNDAxNTQsImV4cCI6MjEwMDgxNjE1NH0.I9aTd8eYkC0LsVeUz9s5j8-pxUmEcaXB9u4vtKU9nhI';
+
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        console.log('✅ Supabase initialized');
+
+        // ================================================================
+        //  STATE
+        // ================================================================
+        let schools = [];
+        let adminDataCache = [];
+
+        // ================================================================
+        //  DOM REFS
+        // ================================================================
+        const $ = id => document.getElementById(id);
+
+        // ================================================================
+        //  TOAST
+        // ================================================================
+        function showToast(message, type = 'info') {
+            const toast = $('toast');
+            toast.textContent = message;
+            toast.className = 'toast toast-' + type;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // ================================================================
+        //  TAB SWITCHING
+        // ================================================================
+        document.querySelectorAll('.tab-btn, .nav-item').forEach(el => {
+            el.addEventListener('click', function() {
+                const tab = this.dataset.tab;
+                document.querySelectorAll('.tab-btn, .nav-item').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll(`.tab-btn[data-tab="${tab}"], .nav-item[data-tab="${tab}"]`).forEach(b =>
+                    b.classList.add('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                const target = $('tab-' + tab);
+                if (target) target.classList.add('active');
+                if (tab === 'data') loadData();
+                if (tab === 'dashboard') updateStats();
+            });
+        });
+
+        // ================================================================
+        //  DATA HELPERS
+        // ================================================================
+        async function fetchSchools() {
+            try {
+                const { data, error } = await supabase.from('schools').select('*').order('name');
+                if (error) throw error;
+                return data || [];
+            } catch (e) {
+                console.warn('Fetch schools error:', e);
+                showToast('Error loading schools', 'error');
+                return [];
+            }
+        }
+
+        async function fetchRecords(schoolId = null) {
+            try {
+                let query = supabase.from('school_data').select('*');
+                if (schoolId) query = query.eq('school_id', schoolId);
+                const { data, error } = await query.order('grade');
+                if (error) throw error;
+                return data || [];
+            } catch (e) {
+                console.warn('Fetch records error:', e);
+                showToast('Error loading records', 'error');
+                return [];
+            }
+        }
+
+        async function deleteRecord(id) {
+            try {
+                const { error } = await supabase.from('school_data').delete().eq('id', id);
+                if (error) throw error;
+                showToast('Record deleted!', 'success');
+                return true;
+            } catch (e) {
+                console.warn('Delete error:', e);
+                showToast('Error deleting: ' + e.message, 'error');
+                return false;
+            }
+        }
+
+        async function deleteSchool(id) {
+            try {
+                const { error } = await supabase.from('schools').delete().eq('id', id);
+                if (error) throw error;
+                showToast('School deleted!', 'success');
+                return true;
+            } catch (e) {
+                console.warn('Delete school error:', e);
+                showToast('Error deleting school: ' + e.message, 'error');
+                return false;
+            }
+        }
+
+        async function addSchool(name) {
+            try {
+                const { data, error } = await supabase.from('schools').insert({ name }).select().single();
+                if (error) throw error;
+                showToast('School added!', 'success');
+                return data;
+            } catch (e) {
+                console.warn('Add school error:', e);
+                showToast('Error adding school: ' + e.message, 'error');
+                throw e;
+            }
+        }
+
+        // ================================================================
+        //  LOAD FUNCTIONS
+        // ================================================================
+        async function loadSchools() {
+            schools = await fetchSchools();
+            const tbody = $('schoolListBody');
+            if (!tbody) return;
+            tbody.innerHTML = schools.map((s, i) =>
+                `<tr><td>${i+1}</td><td><span class="text-ellipsis">${s.name}</span></td>
+                         <td style="text-align:right;"><button class="btn-danger btn-small" onclick="removeSchool('${s.id}')"><i class="fas fa-trash" style="font-family:'Font Awesome 6 Free';font-weight:900;"></i></button></td></tr>`
+            ).join('');
+
+            const sel = $('adminFilterSchool');
+            if (sel) {
+                const currentVal = sel.value;
+                sel.innerHTML = `<option value="">All Schools</option>` +
+                    schools.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+                sel.value = currentVal;
+            }
+        }
+
+        async function loadData() {
+            const filterSchool = $('adminFilterSchool');
+            const filterVal = filterSchool ? filterSchool.value : '';
+            const records = await fetchRecords(filterVal || null);
+            adminDataCache = records;
+
+            const tbody = $('adminDataBody');
+            if (!tbody) return;
+            if (records.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="12"><div class="empty-state"><i class="fas fa-inbox" style="font-family:'Font Awesome 6 Free';font-weight:900;"></i><p>No records found</p></div></td></tr>`;
+                return;
+            }
+
+            const schoolMap = {};
+            schools.forEach(s => schoolMap[s.id] = s.name);
+
+            tbody.innerHTML = records.map(r => {
+                const total = (r.enrolment_boys || 0) + (r.enrolment_girls || 0);
+                const dropouts = (r.dropout_preg_boys || 0) + (r.dropout_preg_girls || 0) +
+                    (r.dropout_marriage_boys || 0) + (r.dropout_marriage_girls || 0) +
+                    (r.dropout_death_boys || 0) + (r.dropout_death_girls || 0) +
+                    (r.dropout_illness_boys || 0) + (r.dropout_illness_girls || 0) +
+                    (r.dropout_orphaned_boys || 0) + (r.dropout_orphaned_girls || 0) +
+                    (r.dropout_economic_boys || 0) + (r.dropout_economic_girls || 0) +
+                    (r.dropout_ovc_boys || 0) + (r.dropout_ovc_girls || 0);
+                const absent = (r.absenteeism_boys || 0) + (r.absenteeism_girls || 0);
+                const reentry = (r.reentry_boys || 0) + (r.reentry_girls || 0);
+                const ovc = (r.ovc_boys || 0) + (r.ovc_girls || 0);
+                const schoolName = schoolMap[r.school_id] || r.school_id;
+                return `<tr>
+                            <td><span class="text-ellipsis fw-600">${schoolName}</span></td>
+                            <td>${r.grade || '-'}</td>
+                            <td>${r.enrolment_boys || 0}</td>
+                            <td>${r.enrolment_girls || 0}</td>
+                            <td><strong>${total}</strong></td>
+                            <td>${r.age_range || '-'}</td>
+                            <td>${r.teen_preg || 0}</td>
+                            <td>${dropouts}</td>
+                            <td>${absent}</td>
+                            <td>${reentry}</td>
+                            <td>${ovc}</td>
+                            <td style="text-align:right;"><button class="btn-danger btn-small" onclick="deleteRecord('${r.id}')"><i class="fas fa-trash" style="font-family:'Font Awesome 6 Free';font-weight:900;"></i></button></td>
+                        </tr>`;
+            }).join('');
+            updateStats();
+        }
+
+        function updateStats() {
+            const records = adminDataCache;
+            const schoolSet = new Set(records.map(r => r.school_id));
+            let totalEnrol = 0,
+                teenPreg = 0,
+                dropouts = 0,
+                absent = 0,
+                ovc = 0;
+            records.forEach(r => {
+                totalEnrol += (r.enrolment_boys || 0) + (r.enrolment_girls || 0);
+                teenPreg += (r.teen_preg || 0);
+                dropouts += (r.dropout_preg_boys || 0) + (r.dropout_preg_girls || 0) +
+                    (r.dropout_marriage_boys || 0) + (r.dropout_marriage_girls || 0) +
+                    (r.dropout_death_boys || 0) + (r.dropout_death_girls || 0) +
+                    (r.dropout_illness_boys || 0) + (r.dropout_illness_girls || 0) +
+                    (r.dropout_orphaned_boys || 0) + (r.dropout_orphaned_girls || 0) +
+                    (r.dropout_economic_boys || 0) + (r.dropout_economic_girls || 0) +
+                    (r.dropout_ovc_boys || 0) + (r.dropout_ovc_girls || 0);
+                absent += (r.absenteeism_boys || 0) + (r.absenteeism_girls || 0);
+                ovc += (r.ovc_boys || 0) + (r.ovc_girls || 0);
+            });
+            $('statSchools').textContent = schoolSet.size || schools.length;
+            $('statTotalEnrol').textContent = totalEnrol;
+            $('statTeenPreg').textContent = teenPreg;
+            $('statDropouts').textContent = dropouts;
+            $('statAbsenteeism').textContent = absent;
+            $('statOVC').textContent = ovc;
+            $('lastUpdatedAdmin').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
+        }
+
+        // ================================================================
+        //  SCHOOL MANAGEMENT
+        // ================================================================
+        function showAddSchoolForm() {
+            const el = $('addSchoolForm');
+            if (el) el.classList.toggle('hidden');
+            if (el && !el.classList.contains('hidden')) {
+                $('newSchoolName').focus();
+            }
+        }
+
+        async function addSchool() {
+            const input = $('newSchoolName');
+            if (!input) return;
+            const name = input.value.trim();
+            if (!name) { showToast('Please enter a school name.', 'error'); return; }
+            try {
+                await addSchool(name);
+                input.value = '';
+                const el = $('addSchoolForm');
+                if (el) el.classList.add('hidden');
+                await loadSchools();
+                await loadData();
+            } catch (e) {}
+        }
+
+        async function removeSchool(id) {
+            if (!confirm('Delete this school? All associated data will be removed.')) return;
+            const success = await deleteSchool(id);
+            if (success) {
+                await loadSchools();
+                await loadData();
+            }
+        }
+
+        // ================================================================
+        //  DELETE RECORD
+        // ================================================================
+        async function deleteRecord(id) {
+            if (!confirm('Delete this record?')) return;
+            const success = await deleteRecord(id);
+            if (success) {
+                await loadData();
+            }
+        }
+
+        // ================================================================
+        //  EXPORT
+        // ================================================================
+        function exportToExcel() {
+            const records = adminDataCache;
+            if (!records || records.length === 0) {
+                showToast('No data to export.', 'error');
+                return;
+            }
+            const schoolMap = {};
+            schools.forEach(s => schoolMap[s.id] = s.name);
+
+            const rows = records.map(r => {
+                const total = (r.enrolment_boys || 0) + (r.enrolment_girls || 0);
+                const dropouts = (r.dropout_preg_boys || 0) + (r.dropout_preg_girls || 0) +
+                    (r.dropout_marriage_boys || 0) + (r.dropout_marriage_girls || 0) +
+                    (r.dropout_death_boys || 0) + (r.dropout_death_girls || 0) +
+                    (r.dropout_illness_boys || 0) + (r.dropout_illness_girls || 0) +
+                    (r.dropout_orphaned_boys || 0) + (r.dropout_orphaned_girls || 0) +
+                    (r.dropout_economic_boys || 0) + (r.dropout_economic_girls || 0) +
+                    (r.dropout_ovc_boys || 0) + (r.dropout_ovc_girls || 0);
+                const absent = (r.absenteeism_boys || 0) + (r.absenteeism_girls || 0);
+                const reentry = (r.reentry_boys || 0) + (r.reentry_girls || 0);
+                const ovc = (r.ovc_boys || 0) + (r.ovc_girls || 0);
+                return {
+                    'School': schoolMap[r.school_id] || r.school_id,
+                    'Grade': r.grade || '',
+                    'Enrolment Boys': r.enrolment_boys || 0,
+                    'Enrolment Girls': r.enrolment_girls || 0,
+                    'Enrolment Total': total,
+                    'Age Range': r.age_range || '',
+                    'Teen Pregnancy': r.teen_preg || 0,
+                    'Early Marriage Boys': r.early_marriage_boys || 0,
+                    'Early Marriage Girls': r.early_marriage_girls || 0,
+                    'Dropout Pregnancy Boys': r.dropout_preg_boys || 0,
+                    'Dropout Pregnancy Girls': r.dropout_preg_girls || 0,
+                    'Dropout Marriage Boys': r.dropout_marriage_boys || 0,
+                    'Dropout Marriage Girls': r.dropout_marriage_girls || 0,
+                    'Dropout Death Boys': r.dropout_death_boys || 0,
+                    'Dropout Death Girls': r.dropout_death_girls || 0,
+                    'Dropout Illness Boys': r.dropout_illness_boys || 0,
+                    'Dropout Illness Girls': r.dropout_illness_girls || 0,
+                    'Dropout Orphaned Boys': r.dropout_orphaned_boys || 0,
+                    'Dropout Orphaned Girls': r.dropout_orphaned_girls || 0,
+                    'Dropout Economic Boys': r.dropout_economic_boys || 0,
+                    'Dropout Economic Girls': r.dropout_economic_girls || 0,
+                    'Dropout OVC Boys': r.dropout_ovc_boys || 0,
+                    'Dropout OVC Girls': r.dropout_ovc_girls || 0,
+                    'Dropouts Total': dropouts,
+                    'Absenteeism Boys': r.absenteeism_boys || 0,
+                    'Absenteeism Girls': r.absenteeism_girls || 0,
+                    'Absenteeism Total': absent,
+                    'Re-entry Boys': r.reentry_boys || 0,
+                    'Re-entry Girls': r.reentry_girls || 0,
+                    'Re-entry Total': reentry,
+                    'Re-admission Boys': r.readmission_boys || 0,
+                    'Re-admission Girls': r.readmission_girls || 0,
+                    'OVC Boys': r.ovc_boys || 0,
+                    'OVC Girls': r.ovc_girls || 0,
+                    'OVC Total': ovc,
+                };
+            });
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(rows);
+            XLSX.utils.book_append_sheet(wb, ws, 'School Data');
+            XLSX.writeFile(wb, `Mungwi_Term2_2025_${new Date().toISOString().slice(0,10)}.xlsx`);
+            showToast('Export successful!', 'success');
+        }
+
+        function exportToCSV() {
+            const records = adminDataCache;
+            if (!records || records.length === 0) {
+                showToast('No data to export.', 'error');
+                return;
+            }
+            const schoolMap = {};
+            schools.forEach(s => schoolMap[s.id] = s.name);
+            let csv = 'School,Grade,Enrolment Boys,Enrolment Girls,Enrolment Total,Age Range,Teen Pregnancy,' +
+                'Dropouts Total,Absenteeism Total,Re-entry Total,OVC Total\n';
+            records.forEach(r => {
+                const total = (r.enrolment_boys || 0) + (r.enrolment_girls || 0);
+                const dropouts = (r.dropout_preg_boys || 0) + (r.dropout_preg_girls || 0) +
+                    (r.dropout_marriage_boys || 0) + (r.dropout_marriage_girls || 0) +
+                    (r.dropout_death_boys || 0) + (r.dropout_death_girls || 0) +
+                    (r.dropout_illness_boys || 0) + (r.dropout_illness_girls || 0) +
+                    (r.dropout_orphaned_boys || 0) + (r.dropout_orphaned_girls || 0) +
+                    (r.dropout_economic_boys || 0) + (r.dropout_economic_girls || 0) +
+                    (r.dropout_ovc_boys || 0) + (r.dropout_ovc_girls || 0);
+                const absent = (r.absenteeism_boys || 0) + (r.absenteeism_girls || 0);
+                const reentry = (r.reentry_boys || 0) + (r.reentry_girls || 0);
+                const ovc = (r.ovc_boys || 0) + (r.ovc_girls || 0);
+                csv +=
+                    `"${schoolMap[r.school_id] || r.school_id}","${r.grade||''}",${r.enrolment_boys||0},${r.enrolment_girls||0},${total},"${r.age_range||''}",${r.teen_preg||0},${dropouts},${absent},${reentry},${ovc}\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Mungwi_Term2_2025_${new Date().toISOString().slice(0,10)}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('Export successful!', 'success');
+        }
+
+        // ================================================================
+        //  BOOT
+        // ================================================================
+        (async function boot() {
+            await loadSchools();
+            await loadData();
+            console.log('📊 Mungwi District School Data System loaded.');
+            console.log('✅ Connected to Supabase: ' + SUPABASE_URL);
+            showToast('System ready!', 'success');
+        })();
+    </script>
 </body>
 </html>
